@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/sethvargo/go-retry v0.2.4
-	github.com/sony/gobreaker/v2 v2.0.0
+	github.com/sony/gobreaker/v2 v2.3.0
 )
 
 require (
