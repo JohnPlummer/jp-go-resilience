@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Quick check job that mirrors local development
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21", "1.22", "1.23"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Install Tools
+        run: make tools
+
+      - name: Run all checks
+        run: make check
+
+  # Full CI/CD pipeline with additional checks
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21", "1.22", "1.23"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Install Tools
+        run: make tools
+
+      - name: Install Dependencies
+        run: make deps
+
+      #----------------------------------------------
+      # Format Check
+      #----------------------------------------------
+      - name: Check Code Formatting
+        run: |
+          make fmt
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Code is not properly formatted. Please run 'make fmt' locally."
+            git diff
+            exit 1
+          fi
+
+      #----------------------------------------------
+      # Linting
+      #----------------------------------------------
+      - name: Run Linter
+        timeout-minutes: 10
+        run: make lint
+
+      #----------------------------------------------
+      # Security Scanning
+      #----------------------------------------------
+      - name: Run Security Scanner
+        run: make security
+
+      #----------------------------------------------
+      # Testing
+      #----------------------------------------------
+      - name: Run Tests with Coverage
+        run: make test-coverage
+
+      - name: Run Tests with Race Detection
+        run: make test-race
+        continue-on-error: true
+
+      #----------------------------------------------
+      # Coverage Threshold Check
+      #----------------------------------------------
+      - name: Check Coverage Threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Coverage ${COVERAGE}% is below 80% threshold"
+            exit 1
+          fi
+          echo "Coverage threshold met: ${COVERAGE}% >= 80%"
+
+      #----------------------------------------------
+      # Upload Coverage Report (only for latest Go version)
+      #----------------------------------------------
+      - name: Upload coverage to Codecov
+        if: matrix.go-version == '1.23'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
+          flags: jp-go-resilience
+          name: jp-go-resilience-coverage
+          fail_ci_if_error: false
+          verbose: true
