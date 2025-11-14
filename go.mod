@@ -8,7 +8,7 @@ require (
 	github.com/JohnPlummer/jp-go-errors v0.1.0
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	github.com/sethvargo/go-retry v0.2.4
+	github.com/sethvargo/go-retry v0.3.0
 	github.com/sony/gobreaker/v2 v2.0.0
 )
 
