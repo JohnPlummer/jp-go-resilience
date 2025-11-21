@@ -329,6 +329,13 @@ var _ = Describe("CircuitBreakerWrapper", func() {
 			// Wait for timeout
 			time.Sleep(150 * time.Millisecond)
 
+			// Set slow success function before spawning goroutines to avoid race
+			client.executeFunc = func(ctx context.Context, req string) (string, error) {
+				// Slow request to keep circuit in half-open
+				time.Sleep(50 * time.Millisecond)
+				return "success", nil
+			}
+
 			// Make MaxRequests + 1 requests concurrently
 			var wg sync.WaitGroup
 			results := make([]error, 5)
@@ -336,11 +343,6 @@ var _ = Describe("CircuitBreakerWrapper", func() {
 				wg.Add(1)
 				go func(idx int) {
 					defer wg.Done()
-					client.executeFunc = func(ctx context.Context, req string) (string, error) {
-						// Slow request to keep circuit in half-open
-						time.Sleep(50 * time.Millisecond)
-						return "success", nil
-					}
 					_, err := wrapper.Execute(ctx, "test")
 					results[idx] = err
 				}(i)
@@ -503,10 +505,15 @@ var _ = Describe("CircuitBreakerWrapper", func() {
 		})
 
 		It("should maintain accurate counts with concurrent requests", func() {
+			// Use a never-trip function to ensure circuit stays closed during test
 			wrapper = resilience.NewCircuitBreakerWrapper(
 				client,
 				resilience.WithInterval(0), // Disable interval clearing for test
 				resilience.WithCircuitBreakerLogger(logger),
+				resilience.WithReadyToTrip(func(counts resilience.CircuitBreakerCounts) bool {
+					// Never trip - we want to count all requests
+					return false
+				}),
 			)
 
 			var wg sync.WaitGroup
@@ -514,13 +521,19 @@ var _ = Describe("CircuitBreakerWrapper", func() {
 			successCount := 50
 			failCount := 50
 
+			// Pre-define functions to avoid race conditions
+			successFunc := func(ctx context.Context, req string) (string, error) {
+				return "success", nil
+			}
+			failFunc := func(ctx context.Context, req string) (string, error) {
+				return "", errors.New("error")
+			}
+
 			for i := 0; i < successCount; i++ {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					client.executeFunc = func(ctx context.Context, req string) (string, error) {
-						return "success", nil
-					}
+					client.setExecuteFunc(successFunc)
 					_, _ = wrapper.Execute(ctx, "test")
 				}()
 			}
@@ -529,9 +542,7 @@ var _ = Describe("CircuitBreakerWrapper", func() {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					client.executeFunc = func(ctx context.Context, req string) (string, error) {
-						return "", errors.New("error")
-					}
+					client.setExecuteFunc(failFunc)
 					_, _ = wrapper.Execute(ctx, "test")
 				}()
 			}
