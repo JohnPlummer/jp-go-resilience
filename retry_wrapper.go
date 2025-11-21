@@ -221,7 +221,7 @@ func (w *RetryWrapper[Req, Resp]) getBackoffStrategy() retry.Backoff {
 				w.config.MaxDelay,
 				retry.WithJitter(
 					w.config.InitialDelay/10,
-					retry.NewExponential(w.config.InitialDelay),
+					w.newConfigurableExponential(),
 				),
 			),
 		)
@@ -232,11 +232,44 @@ func (w *RetryWrapper[Req, Resp]) getBackoffStrategy() retry.Backoff {
 				w.config.MaxDelay,
 				retry.WithJitter(
 					w.config.InitialDelay/10,
-					retry.NewExponential(w.config.InitialDelay),
+					w.newConfigurableExponential(),
 				),
 			),
 		)
 	}
+}
+
+// newConfigurableExponential creates a custom exponential backoff using the configured multiplier.
+// Unlike retry.NewExponential which always doubles (2.0), this allows configurable growth rates.
+// The delay for attempt N is: initialDelay * (multiplier ^ N)
+func (w *RetryWrapper[Req, Resp]) newConfigurableExponential() retry.Backoff {
+	// Get multiplier from config, default to 2.0 if not set or invalid
+	multiplier := w.config.Multiplier
+	if multiplier <= 0 {
+		multiplier = 2.0
+	}
+
+	// For multiplier of exactly 2.0, use the optimized library implementation
+	if multiplier == 2.0 {
+		return retry.NewExponential(w.config.InitialDelay)
+	}
+
+	// For custom multipliers, implement custom backoff logic
+	attempt := uint64(0)
+	return retry.BackoffFunc(func() (time.Duration, bool) {
+		// Calculate delay: initialDelay * (multiplier ^ attempt)
+		delay := float64(w.config.InitialDelay)
+		for i := uint64(0); i < attempt; i++ {
+			delay *= multiplier
+			// Prevent overflow
+			if delay > float64(1<<63-1) {
+				attempt++
+				return time.Duration(1<<63 - 1), false
+			}
+		}
+		attempt++
+		return time.Duration(delay), false
+	})
 }
 
 // RetryStats holds statistics about retry operations.
