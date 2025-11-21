@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	jperrors "github.com/JohnPlummer/jp-go-errors"
 	"github.com/sony/gobreaker/v2"
 )
 
@@ -96,6 +97,9 @@ func NewCircuitBreakerWrapper[Req, Resp any](
 
 // Execute executes the request through the circuit breaker.
 // If the circuit is open, requests are rejected immediately without calling the underlying client.
+// Circuit breaker errors are wrapped with jperrors types for consistent error handling:
+//   - gobreaker.ErrOpenState becomes jperrors.ErrCircuitOpen
+//   - gobreaker.ErrTooManyRequests becomes jperrors.ErrCircuitTooManyRequests
 func (w *CircuitBreakerWrapper[Req, Resp]) Execute(ctx context.Context, req Req) (Resp, error) {
 	var zero Resp
 
@@ -103,16 +107,44 @@ func (w *CircuitBreakerWrapper[Req, Resp]) Execute(ctx context.Context, req Req)
 		return w.client.Execute(ctx, req)
 	})
 	if err != nil {
-		// Log the error with context
+		// Log and wrap circuit breaker errors with jperrors types
 		switch {
 		case errors.Is(err, gobreaker.ErrOpenState):
+			counts := w.cb.Counts()
 			w.logger.Warn("circuit breaker is open, request rejected",
 				"error", err,
 				"state", w.cb.State(),
-				"counts", w.cb.Counts())
+				"counts", counts)
+			return zero, jperrors.NewCircuitBreakerError(
+				"request rejected",
+				"execute",
+				"open",
+				jperrors.WithCause(err),
+				jperrors.WithCounts(jperrors.CircuitCounts{
+					Requests:             counts.Requests,
+					TotalSuccesses:       counts.TotalSuccesses,
+					TotalFailures:        counts.TotalFailures,
+					ConsecutiveSuccesses: counts.ConsecutiveSuccesses,
+					ConsecutiveFailures:  counts.ConsecutiveFailures,
+				}),
+			)
 		case errors.Is(err, gobreaker.ErrTooManyRequests):
+			counts := w.cb.Counts()
 			w.logger.Debug("circuit breaker in half-open state, too many requests",
 				"error", err)
+			return zero, jperrors.NewCircuitBreakerError(
+				"too many requests in half-open state",
+				"execute",
+				"half-open",
+				jperrors.WithCause(err),
+				jperrors.WithCounts(jperrors.CircuitCounts{
+					Requests:             counts.Requests,
+					TotalSuccesses:       counts.TotalSuccesses,
+					TotalFailures:        counts.TotalFailures,
+					ConsecutiveSuccesses: counts.ConsecutiveSuccesses,
+					ConsecutiveFailures:  counts.ConsecutiveFailures,
+				}),
+			)
 		default:
 			w.logger.Debug("request failed through circuit breaker",
 				"error", err,
