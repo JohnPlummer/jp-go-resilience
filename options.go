@@ -41,6 +41,12 @@ type RetryConfig struct {
 	// Default: 30 seconds
 	MaxDelay time.Duration
 
+	// Multiplier is the backoff multiplier for exponential strategy.
+	// For exponential backoff, delay = initialDelay * (multiplier ^ attempt).
+	// Default: 2.0 (doubling)
+	// Common values: 1.5 (moderate growth), 2.0 (doubling), 3.0 (aggressive growth)
+	Multiplier float64
+
 	// MaxAttempts is the maximum number of attempts (including the initial request).
 	// Default: 3
 	MaxAttempts int
@@ -62,17 +68,30 @@ func WithMaxAttempts(attempts int) RetryOption {
 }
 
 // WithExponentialBackoff configures exponential backoff with jitter.
-// Each retry delay is doubled (with jitter) up to maxDelay.
+// Each retry delay is multiplied by the configured multiplier (default 2.0) up to maxDelay.
 //
 // Example:
 //
 //	resilience.WithExponentialBackoff(time.Second, 30*time.Second)
-//	// Delays: ~1s, ~2s, ~4s, ~8s, ~16s, 30s (capped)
+//	// With default multiplier 2.0: ~1s, ~2s, ~4s, ~8s, ~16s, 30s (capped)
 func WithExponentialBackoff(initialDelay, maxDelay time.Duration) RetryOption {
 	return func(c *RetryConfig) {
 		c.Strategy = RetryStrategyExponential
 		c.InitialDelay = initialDelay
 		c.MaxDelay = maxDelay
+	}
+}
+
+// WithMultiplier sets the backoff multiplier for exponential strategy.
+// Only applies when using RetryStrategyExponential.
+//
+// Example:
+//
+//	resilience.WithMultiplier(1.5) // 50% growth per retry
+//	// With InitialDelay=1s: ~1s, ~1.5s, ~2.25s, ~3.375s, ...
+func WithMultiplier(multiplier float64) RetryOption {
+	return func(c *RetryConfig) {
+		c.Multiplier = multiplier
 	}
 }
 
@@ -137,6 +156,7 @@ func DefaultRetryConfig() *RetryConfig {
 		Strategy:        RetryStrategyExponential,
 		InitialDelay:    time.Second,
 		MaxDelay:        30 * time.Second,
+		Multiplier:      2.0,
 		ErrorClassifier: DefaultErrorClassifier(),
 		Logger:          slog.Default(),
 	}

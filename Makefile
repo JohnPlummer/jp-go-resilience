@@ -114,10 +114,10 @@ coverage:
 	@echo "Coverage report generated: coverage.html"
 	@go tool cover -func=coverage.out | grep total | awk '{print "Total coverage: " $$3}'
 
-# Run security scan
+# Run security scan (excludes examples directory - standalone example files have duplicate main funcs)
 security:
 	@echo "Running security scan..."
-	@$(GOBIN)/gosec -terse -fmt text ./...
+	@$(GOBIN)/gosec -terse -fmt text -exclude-dir=examples ./...
 
 #----------------------------------------------
 # Dependencies and Tools
