@@ -29,3 +29,8 @@ go.work.sum
 # OS files
 .DS_Store
 Thumbs.db
+
+# AI Working Files
+.ai/context.md
+.ai/memory.md
+.ai/tasks/
