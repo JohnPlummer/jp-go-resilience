@@ -1,6 +1,8 @@
 module github.com/JohnPlummer/jp-go-resilience
 
-go 1.23.0
+go 1.24.0
+
+toolchain go1.24.5
 
 require (
 	github.com/JohnPlummer/jp-go-errors v0.2.0
