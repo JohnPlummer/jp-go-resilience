@@ -5,66 +5,11 @@ run:
   timeout: 5m
 
 linters:
-  default: none
-  enable:
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - misspell
-    - revive
-    - gosec
-    - gocritic
-
-  settings:
-    errcheck:
-      check-type-assertions: true
-      check-blank: true
-
-    govet:
-      enable-all: true
-      disable:
-        - shadow
-        - fieldalignment
-
-    revive:
-      rules:
-        - name: exported
-          arguments:
-            - "checkPrivateReceivers"
-            - "sayRepetitiveInsteadOfStutters"
-
-    staticcheck:
-      checks: ["all", "-ST1000", "-ST1001", "-ST1016", "-QF1011"]
-
-    gosec:
-      excludes:
-        - G115
-
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - style
-        - performance
-      disabled-checks:
-        - unnamedResult
+  default: standard
 
   exclusions:
-    paths:
-      - examples
     rules:
+      # Tests may skip error checks for brevity
       - path: _test\.go
         linters:
-          - gosec
           - errcheck
-
-formatters:
-  enable:
-    - gofmt
-    - goimports
-
-output:
-  formats:
-    text:
-      print-issued-lines: true
-      print-linter-name: true

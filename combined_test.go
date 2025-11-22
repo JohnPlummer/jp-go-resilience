@@ -59,8 +59,8 @@ var _ = Describe("CombineRetryAndCircuitBreaker", func() {
 				logger,
 			)
 
-			// Should implement ResilientClient
-			var _ resilience.ResilientClient[string, string] = combined
+			// Should implement ResilientClient (compile-time interface check)
+			var _ resilience.ResilientClient[string, string] = combined //nolint:staticcheck // intentional interface verification
 		})
 	})
 
