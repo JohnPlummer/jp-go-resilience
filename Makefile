@@ -133,7 +133,7 @@ deps:
 # Install required tools with pinned versions for reproducibility
 tools:
 	@echo "Installing required tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.6.2
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
 	@go install mvdan.cc/gofumpt@v0.7.0
 	@go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
 	@go install github.com/onsi/ginkgo/v2/ginkgo@v2.25.1
