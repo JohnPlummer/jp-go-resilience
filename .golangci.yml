@@ -34,6 +34,9 @@ linters:
             - "checkPrivateReceivers"
             - "sayRepetitiveInsteadOfStutters"
 
+    staticcheck:
+      checks: ["all", "-ST1000", "-ST1001", "-ST1016", "-QF1011"]
+
     gosec:
       excludes:
         - G115
@@ -62,6 +65,6 @@ formatters:
 
 output:
   formats:
-    colored-line-number:
+    text:
       print-issued-lines: true
       print-linter-name: true
