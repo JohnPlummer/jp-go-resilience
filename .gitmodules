@@ -1,0 +1,3 @@
+[submodule ".ai/common"]
+	path = .ai/common
+	url = https://github.com/JohnPlummer/ai-common.git
