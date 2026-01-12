@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
-	github.com/JohnPlummer/jp-go-errors v1.1.0
+	github.com/JohnPlummer/jp-go-errors v1.1.1
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.3
 	github.com/sethvargo/go-retry v0.3.0
