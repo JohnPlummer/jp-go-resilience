@@ -42,7 +42,8 @@ var _ = Describe("RetryWrapper Integration", func() {
 		})
 
 		Context("with retryable HTTP status codes", func() {
-			DescribeTable("retries on retryable status codes",
+			DescribeTable(
+				"retries on retryable status codes",
 				func(statusCode int, errorMsg string) {
 					attemptCount := 0
 					client.executeFunc = func(ctx context.Context, req string) (string, error) {
@@ -75,7 +76,8 @@ var _ = Describe("RetryWrapper Integration", func() {
 		})
 
 		Context("with non-retryable HTTP status codes", func() {
-			DescribeTable("does not retry on non-retryable status codes",
+			DescribeTable(
+				"does not retry on non-retryable status codes",
 				func(statusCode int, errorMsg string) {
 					client.executeFunc = func(ctx context.Context, req string) (string, error) {
 						return "", resilience.NewStatusCodeError(statusCode, errors.New(errorMsg))
