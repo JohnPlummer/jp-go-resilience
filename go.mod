@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/JohnPlummer/jp-go-errors v1.1.4
-	github.com/onsi/ginkgo/v2 v2.29.0
+	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sony/gobreaker/v2 v2.4.0
